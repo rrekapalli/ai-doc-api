@@ -6,14 +6,14 @@
   - Set up basic application properties and configuration structure
   - _Requirements: 7.1, 7.2, 7.3, 8.1, 8.2_
 
-- [ ] 2. Database Schema and Configuration
-  - [ ] 2.1 Create PostgreSQL database schema SQL scripts
+- [x] 2. Database Schema and Configuration
+  - [x] 2.1 Create PostgreSQL database schema SQL scripts
     - Write SQL scripts for subscribers, usage_tracking, health_data_entries, and analytics_summary tables
     - Include indexes for performance optimization and foreign key constraints
     - Create database initialization and migration scripts
     - _Requirements: 9.2, 9.4, 10.3_
 
-  - [ ] 2.2 Configure Spring Data JPA with PostgreSQL
+  - [x] 2.2 Configure Spring Data JPA with PostgreSQL
     - Set up HikariCP connection pooling configuration
     - Configure JPA entities and repositories for database tables
     - Implement database health check and connection validation
