@@ -17,6 +17,7 @@ public class SubscriberService {
         this.subscriberRepository = subscriberRepository;
     }
 
+    @org.springframework.cache.annotation.CacheEvict(cacheNames = {"subscriberById", "subscriberByEmail"}, allEntries = true)
     @Transactional
     public Subscriber createOrUpdate(Subscriber input) {
         // Upsert by userId if present; otherwise, by email
@@ -64,16 +65,19 @@ public class SubscriberService {
     }
 
     @Transactional(readOnly = true)
+    @org.springframework.cache.annotation.Cacheable(cacheNames = "subscriberById", key = "#userId")
     public Optional<Subscriber> findByUserId(String userId) {
         return subscriberRepository.findById(userId);
     }
 
     @Transactional(readOnly = true)
+    @org.springframework.cache.annotation.Cacheable(cacheNames = "subscriberByEmail", key = "#email")
     public Optional<Subscriber> findByEmail(String email) {
         return subscriberRepository.findByEmail(email);
     }
 
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(cacheNames = {"subscriberById", "subscriberByEmail"}, allEntries = true)
     public Optional<Subscriber> updateStatus(String userId, String newStatus) {
         return subscriberRepository.findById(userId).map(sub -> {
             sub.setSubscriptionStatus(newStatus);

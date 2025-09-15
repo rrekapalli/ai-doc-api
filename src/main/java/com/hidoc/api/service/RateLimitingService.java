@@ -29,6 +29,7 @@ public class RateLimitingService {
         return used < monthlyLimit;
     }
 
+    @org.springframework.cache.annotation.CacheEvict(cacheNames = "usageStats", key = "#userId")
     public void recordRequest(String userId, String provider, boolean success, String errorMessage) {
         UsageTracking rec = new UsageTracking();
         rec.setUserId(userId);
@@ -39,6 +40,7 @@ public class RateLimitingService {
         usageTrackingRepository.save(rec);
     }
 
+    @org.springframework.cache.annotation.Cacheable(cacheNames = "usageStats", key = "#userId")
     public UsageStats getUserUsageStats(String userId) {
         String month = currentMonthYear();
         long used = usageTrackingRepository.countByUserAndMonth(userId, month);

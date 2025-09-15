@@ -166,15 +166,15 @@
     - Write validation tests for edge cases and malicious inputs
     - _Requirements: 4.4, 5.5, 6.5_
 
-- [ ] 12. Performance Optimization and Caching
-  - [ ] 12.1 Configure virtual threading and async processing
+- [x] 12. Performance Optimization and Caching
+  - [x] 12.1 Configure virtual threading and async processing
     - Set up virtual thread configuration for Spring Boot
     - Implement async processing for AI service calls
     - Write performance tests to validate virtual threading benefits
     - _Requirements: 7.1, 7.3, 7.4_
 
-  - [ ] 12.2 Implement Redis caching layer
-    - Configure Redis for caching frequently accessed data
+  - [x] 12.2 Implement Redis caching layer
+    - Configure Redis for caching frequently accessed data (toggle via cache.enabled property; default disabled)
     - Add caching annotations for subscriber and usage data
     - Write caching tests and cache invalidation scenarios
     - _Requirements: 11.3, 11.5_
