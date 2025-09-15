@@ -192,15 +192,15 @@
     - Add deployment validation and smoke tests (covered via health endpoints; basic readiness/liveness checks)
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ] 14. Documentation and Final Integration
-  - [ ] 14.1 Create API documentation
-    - Generate OpenAPI/Swagger documentation for all endpoints
-    - Write API usage examples and integration guides
-    - Create deployment and configuration documentation
+- [x] 14. Documentation and Final Integration
+  - [x] 14.1 Create API documentation
+    - Generate OpenAPI/Swagger documentation for all endpoints (springdoc-openapi + Swagger UI)
+    - Write API usage examples and integration guides (README updated)
+    - Create deployment and configuration documentation (Docker + env vars documented)
     - _Requirements: 8.4, 8.5_
 
   - [ ] 14.2 Final system validation and testing
-    - Perform complete system testing with all components
-    - Validate OAuth integration with real providers
-    - Test AI service integration and rate limiting under load
+    - Perform complete system testing with all components (unit/web tests pass; E2E via Testcontainers available with ENABLE_E2E)
+    - Validate OAuth integration with real providers (requires real tokens; to be verified in staging)
+    - Test AI service integration and rate limiting under load (execute external load tests; guidance provided in README)
     - _Requirements: All requirements final validation_
