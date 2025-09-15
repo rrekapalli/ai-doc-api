@@ -21,6 +21,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = SubscriberController.class)
+@org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc(addFilters = false)
+@org.springframework.test.context.TestPropertySource(properties = {
+        "server.servlet.context-path="
+})
 class SubscriberControllerTest {
 
     @Autowired
@@ -28,6 +32,9 @@ class SubscriberControllerTest {
 
     @MockBean
     private SubscriberService subscriberService;
+
+    @MockBean
+    private com.hidoc.api.security.JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -51,6 +58,9 @@ class SubscriberControllerTest {
         when(subscriberService.createOrUpdate(any(Subscriber.class))).thenReturn(saved);
 
         mockMvc.perform(post("/api/subscribers")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("user-1"))
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                        .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
@@ -67,7 +77,8 @@ class SubscriberControllerTest {
         existing.setOauthProvider("MICROSOFT");
         when(subscriberService.findByUserId("user-2")).thenReturn(Optional.of(existing));
 
-        mockMvc.perform(get("/api/subscribers/user-2"))
+        mockMvc.perform(get("/api/subscribers/user-2")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("user-2")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value("user-2"))
                 .andExpect(jsonPath("$.email").value("u2@example.com"));
@@ -82,7 +93,9 @@ class SubscriberControllerTest {
         updated.setSubscriptionStatus("CANCELLED");
         when(subscriberService.updateStatus("user-3", "CANCELLED")).thenReturn(Optional.of(updated));
 
-        mockMvc.perform(put("/api/subscribers/user-3/status").param("status", "CANCELLED"))
+        mockMvc.perform(put("/api/subscribers/user-3/status").param("status", "CANCELLED")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("user-3"))
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.subscriptionStatus").value("CANCELLED"));
     }

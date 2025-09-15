@@ -17,7 +17,7 @@ public class RateLimitingService {
     private final UsageTrackingRepository usageTrackingRepository;
 
     @Value("${rate-limiting.monthly-limit:100}")
-    private int monthlyLimit;
+    private int monthlyLimit = 100;
 
     public RateLimitingService(UsageTrackingRepository usageTrackingRepository) {
         this.usageTrackingRepository = usageTrackingRepository;

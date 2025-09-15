@@ -34,7 +34,7 @@ public class SubscriberController {
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<SubscriberDto> getByUserId(@PathVariable @NotBlank String userId) {
+    public ResponseEntity<SubscriberDto> getByUserId(@PathVariable("userId") @NotBlank String userId) {
         Optional<Subscriber> sub = subscriberService.findByUserId(userId);
         return sub.map(value -> ResponseEntity.ok(mapToDto(value)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
@@ -48,7 +48,7 @@ public class SubscriberController {
     }
 
     @PutMapping("/{userId}/status")
-    public ResponseEntity<SubscriberDto> updateStatus(@PathVariable @NotBlank String userId,
+    public ResponseEntity<SubscriberDto> updateStatus(@PathVariable("userId") @NotBlank String userId,
                                                       @RequestParam("status") @NotBlank String status) {
         Optional<Subscriber> updated = subscriberService.updateStatus(userId, status);
         return updated.map(value -> ResponseEntity.ok(mapToDto(value)))
