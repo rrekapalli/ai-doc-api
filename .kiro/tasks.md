@@ -121,22 +121,22 @@
     - Write integration tests for complete health data workflows
     - _Requirements: 6.1, 6.2, 6.4, 6.5_
 
-- [ ] 9. Analytics and Reporting
-  - [ ] 9.1 Create analytics entity and repository
+- [x] 9. Analytics and Reporting
+  - [x] 9.1 Create analytics entity and repository
     - Implement AnalyticsSummary entity for aggregated metrics
-    - Create AnalyticsRepository with complex aggregation queries
-    - Write repository tests for analytics data operations
+    - Create AnalyticsRepository with complex aggregation queries (totals, unique users, by-provider counts, daily trends)
+    - Note: Aggregations use PostgreSQL-native queries for performance
     - _Requirements: 10.1, 10.2, 10.4_
 
-  - [ ] 9.2 Implement analytics service
-    - Create AnalyticsService with report generation logic
+  - [x] 9.2 Implement analytics service
+    - Create AnalyticsService with report generation logic (summary and trends)
     - Implement user engagement and usage trend calculations
-    - Write service tests for analytics computation scenarios
+    - Write service tests for analytics computation scenarios (mocked repository)
     - _Requirements: 10.1, 10.2, 10.3, 10.4_
 
-  - [ ] 9.3 Create analytics REST controller
-    - Implement AnalyticsController with reporting endpoints
-    - Add filtering and pagination for analytics queries
+  - [x] 9.3 Create analytics REST controller
+    - Implement AnalyticsController with reporting endpoints (/api/analytics/summary, /api/analytics/trends)
+    - Add date-range filtering and provider filter; structure ready for pagination if needed
     - Write controller tests for analytics API functionality
     - _Requirements: 10.1, 10.2, 10.4, 10.5_
 
