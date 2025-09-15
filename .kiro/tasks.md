@@ -52,13 +52,13 @@
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
 - [ ] 5. Rate Limiting System
-  - [ ] 5.1 Implement usage tracking entity and repository
+  - [x] 5.1 Implement usage tracking entity and repository
     - Create UsageTracking JPA entity for request tracking
     - Implement UsageTrackingRepository with time-based queries
     - Write repository tests for usage counting and filtering
     - _Requirements: 2.2, 2.3, 2.4_
 
-  - [ ] 5.2 Create rate limiting service
+  - [x] 5.2 Create rate limiting service
     - Implement RateLimitingService with monthly request counting
     - Add logic for request validation and counter reset
     - Write unit tests for rate limiting scenarios including edge cases
