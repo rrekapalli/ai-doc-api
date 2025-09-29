@@ -1,4 +1,4 @@
--- Initial schema for Hi-Doc API Service
+-- Database schema for Hi-Doc API Service (Flyway removed)
 
 -- Subscribers table
 CREATE TABLE IF NOT EXISTS subscribers (
@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS usage_tracking (
     ai_provider VARCHAR(50) NOT NULL,
     request_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     success BOOLEAN NOT NULL DEFAULT TRUE,
-    request_count INT NOT NULL DEFAULT 1,
     error_message TEXT NULL,
     month_year VARCHAR(7) NOT NULL,
     CONSTRAINT fk_usage_user FOREIGN KEY (user_id) REFERENCES subscribers(user_id)

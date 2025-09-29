@@ -5,16 +5,22 @@ import com.hidoc.api.ai.model.AIRequest;
 import com.hidoc.api.ai.model.AIResponse;
 import com.hidoc.api.ai.service.AIProxyService;
 import com.hidoc.api.security.UserInfo;
-import com.hidoc.api.web.dto.ChatRequest;
+import com.hidoc.api.web.dto.ChatPayload;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.concurrent.Callable;
+
 @RestController
 @RequestMapping("/api/ai/openai")
 public class ChatGPTController {
+
+    private static final Logger log = LoggerFactory.getLogger(ChatGPTController.class);
 
     private final AIProxyService proxyService;
 
@@ -23,15 +29,34 @@ public class ChatGPTController {
     }
 
     @PostMapping(value = "/chat", produces = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<AIResponse> chat(@Valid @RequestBody ChatRequest request, Authentication auth) {
-        String userId = extractUserId(auth);
-        AIRequest aiRequest = new AIRequest();
-        aiRequest.setMessage(request.getMessage());
-        aiRequest.setProvider(AIProvider.OPENAI);
-        aiRequest.setUserId(userId);
-        aiRequest.setMetadata(request.getMetadata());
-        AIResponse resp = proxyService.process(aiRequest);
-        return ResponseEntity.ok(resp);
+    public Callable<ResponseEntity<AIResponse>> chat(@Valid @RequestBody ChatPayload request, Authentication auth) {
+        return () -> {
+            String userId;
+            String email = null;
+            try {
+                userId = extractUserId(auth);
+                email = extractEmail(auth);
+            } catch (IllegalArgumentException ex) {
+                userId = request.getUser_id();
+            }
+            if ((userId == null || userId.isBlank()) && (email == null || email.isBlank())) {
+                throw new IllegalArgumentException("user_id or email is required");
+            }
+            long start = System.currentTimeMillis();
+            log.info("[/chat] Received request user_id={} email={} msg_len={}", userId, email, request.getMessage() == null ? 0 : request.getMessage().length());
+            AIRequest aiRequest = new AIRequest();
+            aiRequest.setMessage(request.getMessage());
+            aiRequest.setProvider(AIProvider.OPENAI);
+            aiRequest.setUserId(userId);
+            aiRequest.setEmail(email);
+            java.util.Map<String, Object> meta = new java.util.HashMap<>();
+            meta.put("conversation_history", request.getConversation_history());
+            aiRequest.setMetadata(meta);
+            AIResponse resp = proxyService.process(aiRequest);
+            long took = System.currentTimeMillis() - start;
+            log.info("[/chat] Completed for user_id={} email={} model={} tokens={} took={}ms", userId, email, resp.getModel(), resp.getTokensUsed(), took);
+            return ResponseEntity.ok(resp);
+        };
     }
 
     private String extractUserId(Authentication auth) {
@@ -50,6 +75,17 @@ public class ChatGPTController {
             return s;
         }
         throw new IllegalArgumentException("Invalid authentication principal");
+    }
+
+    private String extractEmail(Authentication auth) {
+        if (auth == null || auth.getPrincipal() == null) {
+            return null;
+        }
+        Object principal = auth.getPrincipal();
+        if (principal instanceof UserInfo u) {
+            return u.getEmail();
+        }
+        return null;
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

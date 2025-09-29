@@ -11,8 +11,11 @@ public class UsageTracking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false, length = 255)
-    private String userId;
+    @Column(name = "user_id", length = 255)
+    private String userId; // legacy, may be null
+
+    @Column(name = "email", length = 255)
+    private String email; // new FK to subscribers(email)
 
     @Column(name = "ai_provider", nullable = false, length = 50)
     private String aiProvider;
@@ -22,6 +25,9 @@ public class UsageTracking {
 
     @Column(nullable = false)
     private boolean success = true;
+
+    @Column(name = "request_count", nullable = false)
+    private Integer requestCount = 1; // Use wrapper to avoid null assignment errors
 
     @Column(name = "error_message")
     private String errorMessage;
@@ -34,12 +40,16 @@ public class UsageTracking {
     public void setId(Long id) { this.id = id; }
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
     public String getAiProvider() { return aiProvider; }
     public void setAiProvider(String aiProvider) { this.aiProvider = aiProvider; }
     public LocalDateTime getRequestTimestamp() { return requestTimestamp; }
     public void setRequestTimestamp(LocalDateTime requestTimestamp) { this.requestTimestamp = requestTimestamp; }
     public boolean isSuccess() { return success; }
     public void setSuccess(boolean success) { this.success = success; }
+    public int getRequestCount() { return requestCount == null ? 0 : requestCount; }
+    public void setRequestCount(Integer requestCount) { this.requestCount = requestCount; }
     public String getErrorMessage() { return errorMessage; }
     public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
     public String getMonthYear() { return monthYear; }

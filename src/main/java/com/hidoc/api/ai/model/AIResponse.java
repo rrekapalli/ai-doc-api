@@ -6,27 +6,33 @@ import java.util.List;
 import java.util.Map;
 
 public class AIResponse {
-    private String reply;
-    private HealthDataEntry healthDataEntry;
-    private String storedId;
-    private boolean persisted;
-    private String reasoning;
+    // The AI-generated reply to display to the user
+    private String response;
+    // The model used for the response (optional)
+    private String model;
+    // Number of tokens used (optional)
+    private Integer tokensUsed;
+    // Unique ID for the request (optional)
+    private String requestId;
+    // Parsed health/medical data, if applicable (optional)
+    private HealthDataEntry entry;
+    // Array of matched entities or keywords (optional)
     private List<Map<String, Object>> matches;
 
-    public String getReply() { return reply; }
-    public void setReply(String reply) { this.reply = reply; }
+    public String getResponse() { return response; }
+    public void setResponse(String response) { this.response = response; }
 
-    public HealthDataEntry getHealthDataEntry() { return healthDataEntry; }
-    public void setHealthDataEntry(HealthDataEntry healthDataEntry) { this.healthDataEntry = healthDataEntry; }
+    public String getModel() { return model; }
+    public void setModel(String model) { this.model = model; }
 
-    public String getStoredId() { return storedId; }
-    public void setStoredId(String storedId) { this.storedId = storedId; }
+    public Integer getTokensUsed() { return tokensUsed; }
+    public void setTokensUsed(Integer tokensUsed) { this.tokensUsed = tokensUsed; }
 
-    public boolean isPersisted() { return persisted; }
-    public void setPersisted(boolean persisted) { this.persisted = persisted; }
+    public String getRequestId() { return requestId; }
+    public void setRequestId(String requestId) { this.requestId = requestId; }
 
-    public String getReasoning() { return reasoning; }
-    public void setReasoning(String reasoning) { this.reasoning = reasoning; }
+    public HealthDataEntry getEntry() { return entry; }
+    public void setEntry(HealthDataEntry entry) { this.entry = entry; }
 
     public List<Map<String, Object>> getMatches() { return matches; }
     public void setMatches(List<Map<String, Object>> matches) { this.matches = matches; }

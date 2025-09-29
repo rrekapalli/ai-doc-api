@@ -26,16 +26,31 @@ public class AIProxyService {
 
     public AIResponse process(AIRequest request) {
         String userId = request.getUserId();
+        String email = request.getEmail();
+        // Heuristic: if no explicit email was provided but userId looks like an email, treat it as email
+        if ((email == null || email.isBlank()) && userId != null && userId.contains("@")) {
+            email = userId;
+        }
         AIProvider provider = request.getProvider();
-        if (userId == null || userId.isBlank()) {
-            throw new IllegalArgumentException("userId is required");
+        if ((userId == null || userId.isBlank()) && (email == null || email.isBlank())) {
+            throw new IllegalArgumentException("userId or email is required");
         }
         if (provider == null) {
             throw new IllegalArgumentException("provider is required");
         }
 
-        if (!rateLimitingService.isRequestAllowed(userId)) {
-            rateLimitingService.recordRequest(userId, provider.name(), false, "Rate limit exceeded");
+        boolean allowed;
+        if (email != null && !email.isBlank()) {
+            allowed = rateLimitingService.isRequestAllowedByEmail(email);
+        } else {
+            allowed = rateLimitingService.isRequestAllowed(userId);
+        }
+        if (!allowed) {
+            if (email != null && !email.isBlank()) {
+                rateLimitingService.recordRequestByEmail(email, provider.name(), false, "Rate limit exceeded");
+            } else {
+                rateLimitingService.recordRequest(userId, provider.name(), false, "Rate limit exceeded");
+            }
             throw new RateLimitExceededException("Monthly request limit exceeded");
         }
 
@@ -53,7 +68,11 @@ public class AIProxyService {
             error = ex.getMessage();
             throw ex;
         } finally {
-            rateLimitingService.recordRequest(userId, provider.name(), success, error);
+            if (email != null && !email.isBlank()) {
+                rateLimitingService.recordRequestByEmail(email, provider.name(), success, error);
+            } else {
+                rateLimitingService.recordRequest(userId, provider.name(), success, error);
+            }
         }
     }
 }

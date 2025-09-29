@@ -65,13 +65,13 @@ public class SubscriberService {
     }
 
     @Transactional(readOnly = true)
-    @org.springframework.cache.annotation.Cacheable(cacheNames = "subscriberById", key = "#userId")
+    @org.springframework.cache.annotation.Cacheable(cacheNames = "subscriberById", key = "#p0")
     public Optional<Subscriber> findByUserId(String userId) {
         return subscriberRepository.findById(userId);
     }
 
     @Transactional(readOnly = true)
-    @org.springframework.cache.annotation.Cacheable(cacheNames = "subscriberByEmail", key = "#email")
+    @org.springframework.cache.annotation.Cacheable(cacheNames = "subscriberByEmail", key = "#p0")
     public Optional<Subscriber> findByEmail(String email) {
         return subscriberRepository.findByEmail(email);
     }

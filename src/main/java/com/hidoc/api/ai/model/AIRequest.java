@@ -8,6 +8,7 @@ public class AIRequest {
     private String message;
     private AIProvider provider;
     private String userId;
+    private String email; // optional: prefer for usage tracking
     private Map<String, Object> metadata;
 
     public String getMessage() { return message; }
@@ -18,6 +19,9 @@ public class AIRequest {
 
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
     public Map<String, Object> getMetadata() { return metadata; }
     public void setMetadata(Map<String, Object> metadata) { this.metadata = metadata; }

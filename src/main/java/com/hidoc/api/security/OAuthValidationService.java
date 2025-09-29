@@ -89,14 +89,20 @@ public class OAuthValidationService {
 
     private boolean verifySignature(SignedJWT jwt, OAuthProvider provider) {
         try {
+            // Enforce expected JWS algorithm to avoid accepting unexpected algorithms.
+            if (!JWSAlgorithm.RS256.equals(jwt.getHeader().getAlgorithm())) {
+                log.debug("Unsupported JWS alg: {}", String.valueOf(jwt.getHeader().getAlgorithm()));
+                return false;
+            }
             String kid = jwt.getHeader().getKeyID();
             JWKSet jwkSet = getJwkSet(provider);
             if (jwkSet == null) return false;
 
+            // Azure AD and some IdPs omit the 'alg' field in their JWKS. Matching on 'alg' would fail.
+            // Select by 'kid' (and signature use if present) and verify with RSASSA against the JWT header alg.
             List<JWK> matches = new JWKSelector(new JWKMatcher.Builder()
                     .keyID(kid)
                     .keyUse(KeyUse.SIGNATURE)
-                    .algorithm(JWSAlgorithm.RS256)
                     .build()).select(jwkSet);
 
             for (JWK jwk : matches) {
