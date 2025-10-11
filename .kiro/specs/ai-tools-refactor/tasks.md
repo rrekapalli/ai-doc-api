@@ -14,7 +14,7 @@
   - Configure message history limits (default 100 messages)
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 3. Create core orchestrator and prompt service
+- [x] 3. Create core orchestrator and prompt service
   - Implement HealthChatOrchestrator as the central chat coordinator
   - Create PromptService to load and manage prompts from resources/prompts directory including new Spring AI tool prompts
   - Integrate ChatClient with orchestrator
