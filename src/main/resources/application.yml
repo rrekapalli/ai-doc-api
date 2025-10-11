@@ -57,6 +57,12 @@ ai:
 rate-limiting:
   monthly-limit: 100
 
+app:
+  chat:
+    memory:
+      max-messages: ${CHAT_MEMORY_MAX_MESSAGES:100}
+      max-inactive-minutes: ${CHAT_MEMORY_MAX_INACTIVE_MINUTES:1440}
+
 cache:
   enabled: false
   redis:
