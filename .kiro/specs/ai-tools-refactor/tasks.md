@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Set up Spring AI infrastructure and core models
+- [x] 1. Set up Spring AI infrastructure and core models
   - Add Spring AI dependencies to pom.xml
   - Create Spring AI configuration classes
   - Update AIRequest model to include messageHistory field
