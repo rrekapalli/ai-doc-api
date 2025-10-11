@@ -39,6 +39,9 @@ class HealthChatOrchestratorTest {
     private RateLimitingService rateLimitingService;
 
     @Mock
+    private MessageClassifierTool messageClassifierTool;
+
+    @Mock
     private ChatClient.ChatClientRequestSpec chatRequestSpec;
 
     @Mock
@@ -52,7 +55,8 @@ class HealthChatOrchestratorTest {
                 chatClient,
                 chatMemoryService,
                 promptService,
-                rateLimitingService
+                rateLimitingService,
+                messageClassifierTool
         );
     }
 
@@ -60,17 +64,10 @@ class HealthChatOrchestratorTest {
     void testProcessHealthMessage_Success() {
         // Arrange
         AIRequest request = createTestRequest();
-        String expectedPrompt = "Test Spring AI master prompt";
-        String expectedResponse = "Test AI response";
+        String classificationJson = "{\"classification\":\"MEDICAL_QUERY\",\"response\":\"<p>Processing your medical query.</p>\",\"inference\":\"Message classified as medical query\",\"data\":null,\"isFollowUp\":false,\"followUpDataRequired\":null,\"routeTo\":\"MedicalQueryService\",\"shouldDeductFromRateLimit\":true}";
         RateLimitingService.UsageStats usageStats = new RateLimitingService.UsageStats(5, 95, 100, "2024-01");
 
-        when(promptService.getSpringAiMasterPrompt()).thenReturn(expectedPrompt);
-        when(chatClient.prompt()).thenReturn(chatRequestSpec);
-        when(chatRequestSpec.system(any(String.class))).thenReturn(chatRequestSpec);
-        when(chatRequestSpec.messages(anyList())).thenReturn(chatRequestSpec);
-        when(chatRequestSpec.user(any(String.class))).thenReturn(chatRequestSpec);
-        when(chatRequestSpec.call()).thenReturn(callResponseSpec);
-        when(callResponseSpec.content()).thenReturn(expectedResponse);
+        when(messageClassifierTool.classifyMessage(any(), any(), any(), any())).thenReturn(classificationJson);
         when(rateLimitingService.getUserUsageStats(any())).thenReturn(usageStats);
 
         // Act
@@ -78,9 +75,9 @@ class HealthChatOrchestratorTest {
 
         // Assert
         assertNotNull(response);
-        assertEquals(expectedResponse, response.getResponse());
+        assertEquals("<p>Processing your medical query.</p>", response.getResponse());
         assertEquals("test-user", response.getUserId());
-        assertEquals("PROCESSING", response.getClassification());
+        assertEquals("MEDICAL_QUERY", response.getClassification());
         assertEquals(95, response.getAvailableRequests());
         assertNotNull(response.getDateTime());
         assertNotNull(response.getMessageId());
@@ -88,7 +85,7 @@ class HealthChatOrchestratorTest {
         assertEquals(false, response.getIsFollowUp());
 
         // Verify interactions
-        verify(promptService).getSpringAiMasterPrompt();
+        verify(messageClassifierTool).classifyMessage("I have a headache", "test-user", null, "No previous conversation history.");
         verify(chatMemoryService, times(2)).addMessage(any(), any());
         verify(rateLimitingService).getUserUsageStats("test-user");
     }
@@ -97,17 +94,10 @@ class HealthChatOrchestratorTest {
     void testProcessHealthMessage_WithEmail() {
         // Arrange
         AIRequest request = createTestRequestWithEmail();
-        String expectedPrompt = "Test Spring AI master prompt";
-        String expectedResponse = "Test AI response";
+        String classificationJson = "{\"classification\":\"MEDICAL_QUERY\",\"response\":\"<p>Processing your medical query.</p>\",\"inference\":\"Message classified as medical query\",\"data\":null,\"isFollowUp\":false,\"followUpDataRequired\":null,\"routeTo\":\"MedicalQueryService\",\"shouldDeductFromRateLimit\":true}";
         RateLimitingService.UsageStats usageStats = new RateLimitingService.UsageStats(10, 90, 100, "2024-01");
 
-        when(promptService.getSpringAiMasterPrompt()).thenReturn(expectedPrompt);
-        when(chatClient.prompt()).thenReturn(chatRequestSpec);
-        when(chatRequestSpec.system(any(String.class))).thenReturn(chatRequestSpec);
-        when(chatRequestSpec.messages(anyList())).thenReturn(chatRequestSpec);
-        when(chatRequestSpec.user(any(String.class))).thenReturn(chatRequestSpec);
-        when(chatRequestSpec.call()).thenReturn(callResponseSpec);
-        when(callResponseSpec.content()).thenReturn(expectedResponse);
+        when(messageClassifierTool.classifyMessage(any(), any(), any(), any())).thenReturn(classificationJson);
         when(rateLimitingService.getUsageStatsByEmail(any())).thenReturn(usageStats);
 
         // Act
@@ -116,6 +106,7 @@ class HealthChatOrchestratorTest {
         // Assert
         assertNotNull(response);
         assertEquals(90, response.getAvailableRequests());
+        verify(messageClassifierTool).classifyMessage("I have a headache", "test-user", "test@example.com", "No previous conversation history.");
         verify(rateLimitingService).getUsageStatsByEmail("test@example.com");
     }
 
@@ -123,7 +114,7 @@ class HealthChatOrchestratorTest {
     void testProcessHealthMessage_Error() {
         // Arrange
         AIRequest request = createTestRequest();
-        when(promptService.getSpringAiMasterPrompt()).thenThrow(new RuntimeException("Test error"));
+        when(messageClassifierTool.classifyMessage(any(), any(), any(), any())).thenThrow(new RuntimeException("Test error"));
 
         // Act
         AIResponse response = orchestrator.processHealthMessage(request);

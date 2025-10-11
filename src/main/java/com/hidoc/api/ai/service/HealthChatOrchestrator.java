@@ -1,5 +1,6 @@
 package com.hidoc.api.ai.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hidoc.api.ai.model.AIRequest;
 import com.hidoc.api.ai.model.AIResponse;
 import com.hidoc.api.service.RateLimitingService;
@@ -15,7 +16,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -32,16 +35,19 @@ public class HealthChatOrchestrator {
     private final ChatMemoryService chatMemoryService;
     private final PromptService promptService;
     private final RateLimitingService rateLimitingService;
+    private final MessageClassifierTool messageClassifierTool;
 
     public HealthChatOrchestrator(
             ChatClient chatClient,
             ChatMemoryService chatMemoryService,
             PromptService promptService,
-            RateLimitingService rateLimitingService) {
+            RateLimitingService rateLimitingService,
+            MessageClassifierTool messageClassifierTool) {
         this.chatClient = chatClient;
         this.chatMemoryService = chatMemoryService;
         this.promptService = promptService;
         this.rateLimitingService = rateLimitingService;
+        this.messageClassifierTool = messageClassifierTool;
     }
 
     /**
@@ -55,34 +61,165 @@ public class HealthChatOrchestrator {
             String conversationId = generateConversationId(request);
             String messageId = UUID.randomUUID().toString();
             
-            // Prepare conversation context
-            List<Message> conversationMessages = prepareConversationContext(request, conversationId);
+            // Step 1: Classify the message using MessageClassifierTool
+            AIResponse classificationResult = classifyMessage(request, conversationId);
             
-            // Get system prompt for Spring AI orchestration
-            String systemPrompt = promptService.getSpringAiMasterPrompt();
+            // Step 2: Route to appropriate tool based on classification
+            AIResponse response = routeToSpecializedTool(request, classificationResult, conversationId, messageId);
             
-            // Create the chat client call with conversation context
-            ChatClient.ChatClientRequestSpec chatRequest = chatClient.prompt()
-                .system(systemPrompt)
-                .messages(conversationMessages)
-                .user(request.getMessage());
-            
-            // Execute the chat request
-            String aiResponse = chatRequest.call().content();
-            
-            // Create and populate the response
-            AIResponse response = createResponse(request, aiResponse, conversationId, messageId);
-            
-            // Update conversation memory
+            // Step 3: Update conversation memory
             updateConversationMemory(request, response, conversationId);
             
-            logger.info("Successfully processed health message for user: {}", request.getUserId());
+            logger.info("Successfully processed health message for user: {} with classification: {}", 
+                request.getUserId(), classificationResult.getClassification());
             return response;
             
         } catch (Exception e) {
             logger.error("Error processing health message for user: {}", request.getUserId(), e);
             return createErrorResponse(request, e);
         }
+    }
+
+    /**
+     * Classify the incoming message using MessageClassifierTool directly
+     */
+    private AIResponse classifyMessage(AIRequest request, String conversationId) {
+        logger.debug("Classifying message for user: {}", request.getUserId());
+        
+        try {
+            // Format message history
+            String messageHistory = formatMessageHistory(request.getMessageHistory());
+            
+            // Call the classification tool directly
+            String classificationJson = messageClassifierTool.classifyMessage(
+                request.getMessage(),
+                request.getUserId(),
+                request.getEmail(),
+                messageHistory
+            );
+            
+            // Parse the JSON response into AIResponse
+            AIResponse response = parseClassificationJson(classificationJson, request);
+            
+            logger.debug("Message classified as: {} for user: {}", 
+                response.getClassification(), request.getUserId());
+            
+            return response;
+            
+        } catch (Exception e) {
+            logger.error("Error classifying message for user: {}", request.getUserId(), e);
+            return createClassificationErrorResponse(request, e);
+        }
+    }
+
+    /**
+     * Route to specialized tool based on classification result
+     */
+    private AIResponse routeToSpecializedTool(AIRequest request, AIResponse classificationResult, 
+                                            String conversationId, String messageId) {
+        Map<String, Object> data = classificationResult.getData();
+        String routeTo = data != null ? (String) data.get("routeTo") : "MedicalQueryService";
+        Boolean shouldDeductFromRateLimit = data != null ? (Boolean) data.get("shouldDeductFromRateLimit") : true;
+        
+        logger.debug("Routing to tool: {} for user: {}", routeTo, request.getUserId());
+        
+        // For now, use the classification result as the response
+        // TODO: Implement actual routing to specialized tools in future tasks
+        AIResponse response = classificationResult;
+        
+        // Update response with conversation and message IDs
+        response.setConversationId(conversationId);
+        response.setMessageId(messageId);
+        
+        // Handle rate limiting based on classification
+        if (Boolean.TRUE.equals(shouldDeductFromRateLimit)) {
+            // Calculate available requests after deduction
+            response.setAvailableRequests(calculateAvailableRequests(request));
+        } else {
+            // Don't deduct from rate limit (e.g., for non-health queries)
+            response.setAvailableRequests(calculateAvailableRequestsWithoutDeduction(request));
+        }
+        
+        return response;
+    }
+
+    /**
+     * Format message history for classification
+     */
+    private String formatMessageHistory(List<ChatMessage> messageHistory) {
+        if (messageHistory == null || messageHistory.isEmpty()) {
+            return "No previous conversation history.";
+        }
+        
+        StringBuilder history = new StringBuilder();
+        for (ChatMessage message : messageHistory) {
+            history.append(String.format("%s: %s\n", 
+                message.getRole().toUpperCase(), 
+                message.getContent()));
+        }
+        
+        return history.toString();
+    }
+
+    /**
+     * Parse classification JSON response into AIResponse
+     */
+    private AIResponse parseClassificationJson(String classificationJson, AIRequest request) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> responseMap = objectMapper.readValue(classificationJson, Map.class);
+            
+            AIResponse response = new AIResponse();
+            response.setClassification((String) responseMap.get("classification"));
+            response.setResponse((String) responseMap.get("response"));
+            response.setInference((String) responseMap.get("inference"));
+            response.setIsFollowUp((Boolean) responseMap.get("isFollowUp"));
+            response.setFollowUpDataRequired((String) responseMap.get("followUpDataRequired"));
+            response.setDateTime(LocalDateTime.now());
+            response.setMessageId(UUID.randomUUID().toString());
+            response.setUserId(request.getUserId());
+            response.setModel("spring-ai-message-classifier");
+            
+            // Handle data field and routing information
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = (Map<String, Object>) responseMap.get("data");
+            if (data == null) {
+                data = new HashMap<>();
+            }
+            data.put("routeTo", responseMap.get("routeTo"));
+            data.put("shouldDeductFromRateLimit", responseMap.get("shouldDeductFromRateLimit"));
+            response.setData(data);
+            
+            return response;
+            
+        } catch (Exception e) {
+            logger.error("Failed to parse classification JSON: {}", classificationJson, e);
+            return createClassificationErrorResponse(request, e);
+        }
+    }
+
+    /**
+     * Create error response for classification failures
+     */
+    private AIResponse createClassificationErrorResponse(AIRequest request, Exception error) {
+        AIResponse response = new AIResponse();
+        response.setClassification("ERROR");
+        response.setResponse("<p>I apologize, but I encountered an error while analyzing your message. " +
+            "Please try rephrasing your request or contact support if the issue persists.</p>");
+        response.setInference("Classification failed due to error: " + error.getMessage());
+        response.setDateTime(LocalDateTime.now());
+        response.setMessageId(UUID.randomUUID().toString());
+        response.setUserId(request.getUserId());
+        response.setModel("spring-ai-message-classifier");
+        response.setIsFollowUp(false);
+        
+        Map<String, Object> data = new HashMap<>();
+        data.put("routeTo", "MedicalQueryService");
+        data.put("shouldDeductFromRateLimit", false);
+        response.setData(data);
+        
+        return response;
     }
 
     /**
@@ -145,32 +282,7 @@ public class HealthChatOrchestrator {
         return messageHistory.subList(startIndex, messageHistory.size());
     }
 
-    /**
-     * Create AIResponse from the chat result
-     */
-    private AIResponse createResponse(AIRequest request, String aiResponse, String conversationId, String messageId) {
-        AIResponse response = new AIResponse();
-        
-        // Set basic response data
-        response.setResponse(aiResponse);
-        response.setDateTime(LocalDateTime.now());
-        response.setMessageId(messageId);
-        response.setConversationId(conversationId);
-        response.setUserId(request.getUserId());
-        
-        // Calculate available requests after rate limiting
-        response.setAvailableRequests(calculateAvailableRequests(request));
-        
-        // Set default values for Spring AI fields
-        response.setClassification("PROCESSING"); // Will be updated by tools
-        response.setInference("Initial processing by health chat orchestrator");
-        response.setIsFollowUp(false);
-        
-        // Set model information
-        response.setModel("spring-ai-orchestrator");
-        
-        return response;
-    }
+
 
     /**
      * Calculate available requests for the user after rate limiting
@@ -186,6 +298,27 @@ public class HealthChatOrchestrator {
             }
         } catch (Exception e) {
             logger.warn("Failed to calculate available requests for user: {}", request.getUserId(), e);
+        }
+        
+        return null; // Unknown remaining requests
+    }
+
+    /**
+     * Calculate available requests without deducting from rate limit (for non-health queries)
+     */
+    private Integer calculateAvailableRequestsWithoutDeduction(AIRequest request) {
+        try {
+            if (request.getEmail() != null && !request.getEmail().isBlank()) {
+                RateLimitingService.UsageStats stats = rateLimitingService.getUsageStatsByEmail(request.getEmail());
+                // Return current remaining + 1 since we're not deducting this request
+                return (int) stats.remaining() + 1;
+            } else if (request.getUserId() != null && !request.getUserId().isBlank()) {
+                RateLimitingService.UsageStats stats = rateLimitingService.getUserUsageStats(request.getUserId());
+                // Return current remaining + 1 since we're not deducting this request
+                return (int) stats.remaining() + 1;
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to calculate available requests without deduction for user: {}", request.getUserId(), e);
         }
         
         return null; // Unknown remaining requests
