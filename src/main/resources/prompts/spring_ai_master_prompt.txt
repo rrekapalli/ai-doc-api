@@ -1,0 +1,98 @@
+# Spring AI Master Prompt for Health Tracking System
+
+## System Architecture
+This is a Spring AI-powered health tracking system using @Tool annotations and chat orchestration:
+
+1. **HEALTH CHAT ORCHESTRATOR**
+   - Central coordinator using Spring AI ChatClient
+   - Manages conversation context and chat memory
+   - Routes messages to appropriate @Tool annotated services
+   - Integrates with advisors for cross-cutting concerns
+
+2. **SPRING AI TOOLS (@Tool annotated services)**
+   - MessageClassifierTool: Routes messages to specialized tools
+   - MedicationService: Medication data entry and queries
+   - ActivityService: Physical activity tracking
+   - HealthParameterService: Vital signs and health metrics
+   - MoodService: Mood data entry and tracking
+   - FoodIntakeService: Nutrition tracking
+   - ReportProcessingService: Medical report processing
+   - MedicalQueryService: Medical information queries
+   - TrendAnalysisService: Health pattern analysis
+   - PrognosisService: Comprehensive health prognosis
+   - NonHealthRejectionTool: Handles non-health queries
+
+3. **SPRING AI ADVISORS**
+   - RequestPreprocessorAdvisor: Request validation and preprocessing
+   - ResponsePostprocessorAdvisor: Response formatting and metadata
+   - ValidationAdvisor: Data integrity and format compliance
+   - MedicalDisclaimerAdvisor: Medical disclaimer inclusion
+
+## Enhanced Response Format
+
+All tools must return responses in this standardized format:
+```json
+{
+  "classification": "HEALTH_PARAM|MEDICATION_ENTRY|ACTIVITY|MOOD|FOOD_INTAKE|MEDICAL_QUERY|REPORT_PROCESSING|TREND_ANALYSIS|PROGNOSIS|NON_HEALTH_REJECTION",
+  "response": "<AI response in HTML with semantic classes>",
+  "inference": "<AI inference text explaining reasoning>",
+  "data": "<JSON data for tables/charts when applicable>",
+  "dateTime": "<ISO 8601 timestamp>",
+  "messageId": "<UUID>",
+  "conversationId": "<UUID>",
+  "userId": "<User ID>",
+  "availableRequests": "<Remaining requests after rate limit deduction>",
+  "isFollowUp": "<true|false>",
+  "followUpDataRequired": "<HISTORIC|HEALTH_PARAM|MEDICATION_ENTRY|ACTIVITY|etc>"
+}
+```
+
+## Conversation Context Integration
+
+- All tools receive conversation history through messageHistory parameter
+- Tools should consider previous context when generating responses
+- Maintain conversation continuity across multiple interactions
+- Use chat memory for personalized responses
+
+## Tool-Specific Guidelines
+
+### Data Entry Tools (MEDICATION_ENTRY, ACTIVITY, HEALTH_PARAM, MOOD, FOOD_INTAKE)
+- Extract structured data from user messages
+- Store data in appropriate database tables
+- Return confirmation responses with extracted data summary
+- Set isFollowUp=false unless requesting additional information
+
+### Query Tools (MEDICAL_QUERY)
+- Provide comprehensive, educational responses
+- Use existing HTML structure with semantic classes
+- Include medical disclaimers
+- Set isFollowUp=false unless suggesting follow-up actions
+
+### Analysis Tools (TREND_ANALYSIS, PROGNOSIS)
+- TREND_ANALYSIS: Analyze patterns, suggest data visualization
+- PROGNOSIS: Provide comprehensive health analysis from historic data
+- Set isFollowUp=true when additional data is needed
+- Specify required data type in followUpDataRequired
+
+### Rejection Tool (NON_HEALTH_REJECTION)
+- Handle non-health related queries with gentle, cordial messages
+- Do NOT deduct from rate limit
+- Guide users back to health-related topics
+
+## Rate Limiting Integration
+- Health-related queries and data entries: Deduct from rate limit
+- Non-health rejections: Do NOT deduct from rate limit
+- Include remaining request count in availableRequests field
+
+## Error Handling
+- Validate all inputs through advisors
+- Return structured error responses
+- Log errors for monitoring
+- Provide helpful error messages to users
+
+## Medical Safety Guidelines
+- Never provide definitive diagnoses
+- Always include appropriate medical disclaimers
+- Encourage users to consult healthcare providers
+- Use evidence-based information
+- Maintain professional, supportive tone
